@@ -170,16 +170,19 @@ int ext4_block_flush_buf(struct ext4_blockdev *bdev, struct ext4_buf *buf)
 	return EOK;
 }
 
+//Used indirectly by journal-ing code
 int ext4_block_flush_lba(struct ext4_blockdev *bdev, uint64_t lba)
 {
 	int r = EOK;
 	struct ext4_buf *buf;
 	struct ext4_block b;
+	bdev->fs->bcache_lock();
 	buf = ext4_bcache_find_get(bdev->bc, &b, lba);
 	if (buf) {
 		r = ext4_block_flush_buf(bdev, buf);
 		ext4_bcache_free(bdev->bc, &b);
 	}
+	bdev->fs->bcache_unlock();
 	return r;
 }
 
@@ -244,19 +247,24 @@ int ext4_block_get_noread(struct ext4_blockdev *bdev, struct ext4_block *b,
 int ext4_block_get(struct ext4_blockdev *bdev, struct ext4_block *b,
 		   uint64_t lba)
 {
+	bdev->fs->bcache_lock();
 	int r = ext4_block_get_noread(bdev, b, lba);
-	if (r != EOK)
+	if (r != EOK) {
+		bdev->fs->bcache_unlock();
 		return r;
+	}
 
 	if (ext4_bcache_test_flag(b->buf, BC_UPTODATE)) {
 		/* Data in the cache is up-to-date.
 		 * Reading from physical device is not required */
+		bdev->fs->bcache_unlock();
 		return EOK;
 	}
 
 	r = ext4_blocks_get_direct(bdev, b->data, lba, 1);
 	if (r != EOK) {
 		ext4_bcache_free(bdev->bc, b);
+		bdev->fs->bcache_unlock();
 		b->lb_id = 0;
 		return r;
 	}
@@ -264,6 +272,7 @@ int ext4_block_get(struct ext4_blockdev *bdev, struct ext4_block *b,
 	/* Mark buffer up-to-date, since
 	 * fresh data is read from physical device just now. */
 	ext4_bcache_set_flag(b->buf, BC_UPTODATE);
+	bdev->fs->bcache_unlock();
 	return EOK;
 }
 
@@ -275,7 +284,10 @@ int ext4_block_set(struct ext4_blockdev *bdev, struct ext4_block *b)
 	if (!bdev->bdif->ph_refctr)
 		return EIO;
 
-	return ext4_bcache_free(bdev->bc, b);
+	bdev->fs->bcache_lock();
+	int rc = ext4_bcache_free(bdev->bc, b);
+	bdev->fs->bcache_unlock();
+	return rc;
 }
 
 int ext4_blocks_get_direct(struct ext4_blockdev *bdev, void *buf, uint64_t lba,

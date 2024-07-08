@@ -65,10 +65,26 @@ struct ext4_block {
 
 struct ext4_bcache;
 
+/**@brief buffer state bits
+ *
+ *  - BC_UPTODATE: Buffer contains valid data.
+ *  - BC_DIRTY: Buffer is dirty.
+ *  - BC_FLUSH: Buffer will be immediately flushed,
+ *              when no one references it.
+ *  - BC_TMP: Buffer will be dropped once its refctr
+ *            reaches zero.
+ */
+enum bcache_state_bits {
+	BC_UPTODATE, // Mostly set in ext4_block_get() after reading from disk
+	BC_DIRTY,    // Most importantly set in ext4_bcache_set_dirty()
+	BC_FLUSH,    // Set in journal code
+	BC_TMP       // Set in journal code
+};
+
 /**@brief   Single block descriptor*/
 struct ext4_buf {
 	/**@brief   Flags*/
-	int flags;
+	char flags[BC_TMP + 1];
 
 	/**@brief   Logical block address*/
 	uint64_t lba;
@@ -148,30 +164,14 @@ struct ext4_bcache {
 	SLIST_HEAD(ext4_buf_dirty, ext4_buf) dirty_list;
 };
 
-/**@brief buffer state bits
- *
- *  - BC♡UPTODATE: Buffer contains valid data.
- *  - BC_DIRTY: Buffer is dirty.
- *  - BC_FLUSH: Buffer will be immediately flushed,
- *              when no one references it.
- *  - BC_TMP: Buffer will be dropped once its refctr
- *            reaches zero.
- */
-enum bcache_state_bits {
-	BC_UPTODATE,
-	BC_DIRTY,
-	BC_FLUSH,
-	BC_TMP
-};
-
 #define ext4_bcache_set_flag(buf, b)    \
-	(buf)->flags |= 1 << (b)
+	(buf)->flags[b] = 1
 
 #define ext4_bcache_clear_flag(buf, b)    \
-	(buf)->flags &= ~(1 << (b))
+	(buf)->flags[b] = 0
 
 #define ext4_bcache_test_flag(buf, b)    \
-	(((buf)->flags & (1 << (b))) >> (b))
+	(((buf)->flags[b] == 1 ))
 
 static inline void ext4_bcache_set_dirty(struct ext4_buf *buf) {
 	ext4_bcache_set_flag(buf, BC_UPTODATE);
@@ -238,12 +238,6 @@ struct ext4_buf *ext4_buf_lowest_lru(struct ext4_bcache *bc);
  * @param   bc block cache descriptor
  * @param   buf buffer*/
 void ext4_bcache_drop_buf(struct ext4_bcache *bc, struct ext4_buf *buf);
-
-/**@brief   Invalidate a buffer.
- * @param   bc block cache descriptor
- * @param   buf buffer*/
-void ext4_bcache_invalidate_buf(struct ext4_bcache *bc,
-				struct ext4_buf *buf);
 
 /**@brief   Invalidate a range of buffers.
  * @param   bc block cache descriptor
