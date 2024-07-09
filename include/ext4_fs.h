@@ -67,6 +67,15 @@ struct ext4_fs {
 	struct jbd_fs *jbd_fs;
 	struct jbd_journal *jbd_journal;
 	struct jbd_trans *curr_trans;
+
+	void (*inode_alloc_lock)();
+	void (*inode_alloc_unlock)();
+
+	void (*block_alloc_lock)();
+	void (*block_alloc_unlock)();
+
+	void (*bcache_lock)();
+	void (*bcache_unlock)();
 };
 
 struct ext4_block_group_ref {

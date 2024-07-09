@@ -68,10 +68,9 @@ int ext4_trans_block_get_noread(struct ext4_blockdev *bdev,
 			  struct ext4_block *b,
 			  uint64_t lba)
 {
+	bdev->fs->bcache_lock();
 	int r = ext4_block_get_noread(bdev, b, lba);
-	if (r != EOK)
-		return r;
-
+	bdev->fs->bcache_unlock();
 	return r;
 }
 

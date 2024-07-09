@@ -1657,8 +1657,10 @@ int ext4_fs_append_inode_dblk(struct ext4_inode_ref *inode_ref,
 		if (rc != EOK)
 			return rc;
 
-		*fblock = current_fsblk;
-		ext4_assert(*fblock);
+		if (fblock) {
+			*fblock = current_fsblk;
+			ext4_assert(*fblock);
+		}
 
 		ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
 		inode_ref->dirty = true;
@@ -1702,7 +1704,8 @@ int ext4_fs_append_inode_dblk(struct ext4_inode_ref *inode_ref,
 	ext4_inode_set_size(inode_ref->inode, inode_size + block_size);
 	inode_ref->dirty = true;
 
-	*fblock = phys_block;
+	if (fblock)
+		*fblock = phys_block;
 	*iblock = new_block_idx;
 
 	return EOK;

@@ -110,6 +110,7 @@ static uint32_t ext4_ialloc_bitmap_csum(struct ext4_sblock *sb,	void *bitmap)
 #define ext4_ialloc_bitmap_csum(...) 0
 #endif
 
+//TODO: Check this one when called by ext4_fs_get_block_group_ref()
 void ext4_ialloc_set_bitmap_csum(struct ext4_sblock *sb, struct ext4_bgroup *bg,
 				 void *bitmap __unused)
 {
@@ -155,7 +156,8 @@ ext4_ialloc_verify_bitmap_csum(struct ext4_sblock *sb, struct ext4_bgroup *bg,
 #define ext4_ialloc_verify_bitmap_csum(...) true
 #endif
 
-int ext4_ialloc_free_inode(struct ext4_fs *fs, uint32_t index, bool is_dir)
+static int
+__ext4_ialloc_free_inode(struct ext4_fs *fs, uint32_t index, bool is_dir)
 {
 	struct ext4_sblock *sb = &fs->sb;
 
@@ -226,7 +228,16 @@ int ext4_ialloc_free_inode(struct ext4_fs *fs, uint32_t index, bool is_dir)
 	return EOK;
 }
 
-int ext4_ialloc_alloc_inode(struct ext4_fs *fs, uint32_t *idx, bool is_dir)
+int ext4_ialloc_free_inode(struct ext4_fs *fs, uint32_t index, bool is_dir)
+{
+	fs->inode_alloc_lock();
+	int rc = __ext4_ialloc_free_inode(fs, index, is_dir);
+	fs->inode_alloc_unlock();
+	return rc;
+}
+
+static int
+__ext4_ialloc_alloc_inode(struct ext4_fs *fs, uint32_t *idx, bool is_dir)
 {
 	struct ext4_sblock *sb = &fs->sb;
 
@@ -363,6 +374,14 @@ int ext4_ialloc_alloc_inode(struct ext4_fs *fs, uint32_t *idx, bool is_dir)
 	}
 
 	return ENOSPC;
+}
+
+int ext4_ialloc_alloc_inode(struct ext4_fs *fs, uint32_t *idx, bool is_dir)
+{
+	fs->inode_alloc_lock();
+	int rc = __ext4_ialloc_alloc_inode(fs, idx, is_dir);
+	fs->inode_alloc_unlock();
+	return rc;
 }
 
 /**

@@ -153,11 +153,19 @@ ext4_buf_lookup(struct ext4_bcache *bc, uint64_t lba)
 	return RB_FIND(ext4_buf_lba, &bc->lba_root, &tmp);
 }
 
+// No need for locking
+// Called by ext4_block_cache_shake() ONLY
+// PROTECTED in ext4_block_get_noread() because the only
+// caller - ext4_block_cache_shake() - is protected
 struct ext4_buf *ext4_buf_lowest_lru(struct ext4_bcache *bc)
 {
 	return RB_MIN(ext4_buf_lru, &bc->lru_root);
 }
 
+// No need for locking
+// Called by ext4_block_cache_shake() and functions in this file
+// PROTECTED in ext4_block_get_noread() because the
+// caller - ext4_block_cache_shake() - is protected
 void ext4_bcache_drop_buf(struct ext4_bcache *bc, struct ext4_buf *buf)
 {
 	/* Warn on dropping any referenced buffers.*/
@@ -178,6 +186,10 @@ void ext4_bcache_drop_buf(struct ext4_bcache *bc, struct ext4_buf *buf)
 	bc->ref_blocks--;
 }
 
+/**@brief   Invalidate a buffer.
+ * @param   bc block cache descriptor
+ * @param   buf buffer*/
+static
 void ext4_bcache_invalidate_buf(struct ext4_bcache *bc,
 				struct ext4_buf *buf)
 {
@@ -191,6 +203,9 @@ void ext4_bcache_invalidate_buf(struct ext4_bcache *bc,
 	ext4_bcache_clear_dirty(buf);
 }
 
+// Called by ext4_balloc_free_block/s()
+// Protect by LOCK
+// PROTECTED in the callers
 void ext4_bcache_invalidate_lba(struct ext4_bcache *bc,
 				uint64_t from,
 				uint32_t cnt)
@@ -205,6 +220,10 @@ void ext4_bcache_invalidate_lba(struct ext4_bcache *bc,
 	}
 }
 
+// Called by:
+// - ext4_bcache_alloc() - No need to lock (see below)
+// - ext4_block_flush_lba() - probably need to lock there - PROTECTED
+// - 2 methods in ext4_journal() not used right now - ignore
 struct ext4_buf *
 ext4_bcache_find_get(struct ext4_bcache *bc, struct ext4_block *b,
 		     uint64_t lba)
@@ -231,6 +250,10 @@ ext4_bcache_find_get(struct ext4_bcache *bc, struct ext4_block *b,
 	return buf;
 }
 
+// Called by ext4_block_get_noread() ONLY which also calls ext4_block_cache_shake()
+// which calls numbers of function here. So no need for locking,
+// and maybe we should lock in ext4_block_get_noread()?
+// PROTECTED in ext4_block_get_noread()
 int ext4_bcache_alloc(struct ext4_bcache *bc, struct ext4_block *b,
 		      bool *is_new)
 {
@@ -267,6 +290,8 @@ int ext4_bcache_alloc(struct ext4_bcache *bc, struct ext4_block *b,
 	return EOK;
 }
 
+// Called by 3 functions - ext4_block_flush_lba(), ext4_block_get() and ext4_block_set()
+// Protected there
 int ext4_bcache_free(struct ext4_bcache *bc, struct ext4_block *b)
 {
 	struct ext4_buf *buf = b->buf;
