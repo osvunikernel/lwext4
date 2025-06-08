@@ -143,6 +143,14 @@ void ext4_inode_set_access_time(struct ext4_inode *inode, uint32_t time)
 {
 	inode->access_time = to_le32(time);
 }
+uint32_t ext4_inode_get_extra_access_time(struct ext4_inode *inode)
+{
+	return to_le32(inode->atime_extra);
+}
+void ext4_inode_set_extra_access_time(struct ext4_inode *inode, uint32_t time)
+{
+	inode->atime_extra = to_le32(time);
+}
 
 uint32_t ext4_inode_get_change_inode_time(struct ext4_inode *inode)
 {
@@ -151,6 +159,14 @@ uint32_t ext4_inode_get_change_inode_time(struct ext4_inode *inode)
 void ext4_inode_set_change_inode_time(struct ext4_inode *inode, uint32_t time)
 {
 	inode->change_inode_time = to_le32(time);
+}
+uint32_t ext4_inode_get_extra_change_inode_time(struct ext4_inode *inode)
+{
+	return to_le32(inode->ctime_extra);
+}
+void ext4_inode_set_extra_change_inode_time(struct ext4_inode *inode, uint32_t time)
+{
+	inode->ctime_extra = to_le32(time);
 }
 
 uint32_t ext4_inode_get_modif_time(struct ext4_inode *inode)
@@ -161,6 +177,16 @@ uint32_t ext4_inode_get_modif_time(struct ext4_inode *inode)
 void ext4_inode_set_modif_time(struct ext4_inode *inode, uint32_t time)
 {
 	inode->modification_time = to_le32(time);
+}
+
+uint32_t ext4_inode_get_extra_modif_time(struct ext4_inode *inode)
+{
+	return to_le32(inode->mtime_extra);
+}
+
+void ext4_inode_set_extra_modif_time(struct ext4_inode *inode, uint32_t time)
+{
+	inode->mtime_extra = to_le32(time);
 }
 
 uint32_t ext4_inode_get_del_time(struct ext4_inode *inode)
