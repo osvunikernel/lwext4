@@ -1,13 +1,11 @@
 project(lwext4 C)
 cmake_minimum_required(VERSION 3.4)
 
+add_link_options("-Wl,--gc-sections")
+add_link_options("-Wl,--version-script=${PROJECT_SOURCE_DIR}/version_script")
 
 include_directories(include)
 include_directories(${PROJECT_BINARY_DIR}/include)
-include_directories(blockdev/filedev)
-include_directories(blockdev/filedev_win)
-
-set(BLOCKDEV_TYPE  none)
 
 add_definitions(-DCONFIG_USE_DEFAULT_CONFIG=0)
 add_definitions(-DVERSION="${VERSION}")
@@ -74,15 +72,13 @@ macro(output_configure)
 endmacro()
 output_configure()
 
-add_subdirectory(blockdev)
-
 #Library build
 add_subdirectory(src)
 #Detect all possible warnings for lwext4 target
 if (NOT CMAKE_COMPILER_IS_GNUCC)
     set_target_properties(lwext4 PROPERTIES COMPILE_FLAGS "")
 else()
-    set_target_properties(lwext4 PROPERTIES COMPILE_FLAGS "-Wall -Wextra -pedantic")
+    set_target_properties(lwext4 PROPERTIES COMPILE_FLAGS "-Wall -Wextra -pedantic -ffunction-sections -fdata-sections -g -O2")
 endif()
 
 #DISTRIBUTION
