@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.4)
 
 add_link_options("-Wl,--gc-sections")
 add_link_options("-Wl,--version-script=${PROJECT_SOURCE_DIR}/version_script")
+add_link_options("-nodefaultlibs")
 
 include_directories(include)
 include_directories(${PROJECT_BINARY_DIR}/include)
@@ -33,6 +34,7 @@ elseif(LIB_ONLY)
     add_definitions(-DCONFIG_HAVE_OWN_OFLAGS=1)
     add_definitions(-DCONFIG_HAVE_OWN_ERRNO=0)
     add_definitions(-DCONFIG_BLOCK_DEV_CACHE_SIZE=16)
+    add_definitions(-DCONFIG_JOURNALING_ENABLE=0)
 else()
     #Generic example target
     if (WIN32)

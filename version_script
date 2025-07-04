@@ -5,6 +5,7 @@
     ext4_bcache_init_dynamic;
     ext4_block_bind_bcache;
     ext4_block_cache_write_back;
+    ext4_block_cache_flush;
     ext4_block_fini;
     ext4_block_init;
     ext4_block_readbytes;
